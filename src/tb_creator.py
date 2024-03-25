@@ -2,12 +2,13 @@ import psycopg2
 
 
 class TBCreator:
-    def __init__(self, host, database, user, password):
+    def __init__(self, database='headhunter', user='val_k', password='1986', host='localhost', port='5432'):
         self.conn = psycopg2.connect(
             host=host,
             database=database,
             user=user,
-            password=password
+            password=password,
+            port=port
         )
         self.cur = self.conn.cursor()
 
