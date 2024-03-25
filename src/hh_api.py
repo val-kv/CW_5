@@ -1,12 +1,12 @@
 import requests
 
-from db_manager import DBManager
+from src.db_manager import DBManager
 
 HH_API_URL = 'https://api.hh.ru/vacancies'
 DB_HOST = 'localhost'
-DB_NAME = 'your_db_name'
-DB_USER = 'your_db_user'
-DB_PASSWORD = 'your_db_password'
+DB_NAME = 'headhunter'
+DB_USER = 'val_k'
+DB_PASSWORD = '1986'
 
 db_manager = DBManager(DB_HOST, DB_NAME, DB_USER, DB_PASSWORD)
 db_manager.create_tables()
