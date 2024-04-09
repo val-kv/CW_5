@@ -1,48 +1,45 @@
 import psycopg2
 
 
-class TBCreator:
-    def __init__(self, database='headhunter', user='val_k', password='1986', host='localhost', port='5432'):
-        self.conn = psycopg2.connect(
-            host=host,
-            database=database,
-            user=user,
-            password=password,
-            port=port
-        )
-        self.cur = self.conn.cursor()
+def create_database(database_name: str, params: dict):
+    """Создание базы данных и таблиц для сохранения данных о работадателях  и вакансиях."""
 
+    conn = psycopg2.connect(dbname='postgres', **params)
+    conn.autocommit = True
+    cur = conn.cursor()
+    cur.execute(f"DROP DATABASE IF EXISTS {database_name}")
+    cur.execute(f"CREATE DATABASE {database_name}")
 
-def create_tables(self):
-    self.cur.execute("""
-    CREATE TABLE IF NOT EXISTS employers (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(255)
-    )
-    """)
-    self.cur.execute("""
-    CREATE TABLE IF NOT EXISTS vacancies (
-    id SERIAL PRIMARY KEY,
-    title VARCHAR(255),
-    employer_id INT,
-    FOREIGN KEY (employer_id) REFERENCES employers(id)
-    )
-    """)
-    self.conn.commit()
+    conn.close()
 
+    conn = psycopg2.connect(dbname=database_name, **params)
 
-def insert_employer(self, name):
-    self.cur.execute("INSERT INTO employers (name) VALUES (%s) RETURNING id", (name,))
-    employer_id = self.cur.fetchone()[0]
-    self.conn.commit()
-    return employer_id
+    with conn.cursor() as cur:
+        cur.execute("""
+            CREATE TABLE employers (
+                    employer_id INT PRIMARY KEY,
+                    name VARCHAR(255) NOT NULL,
+                    open_vacancies INT,
+                    area VARCHAR(100),
+                    url VARCHAR
+            )
+        """)
 
-
-def insert_vacancy(self, title, employer_id):
-    self.cur.execute("INSERT INTO vacancies (title, employer_id) VALUES (%s, %s)", (title, employer_id))
-    self.conn.commit()
-
-
-def close(self):
-    self.cur.close()
-    self.conn.close()
+    with conn.cursor() as cur:
+        cur.execute("""
+          CREATE TABLE vacancies (
+                    id SERIAL PRIMARY KEY,
+                    name VARCHAR NOT NULL,
+                    employer_id INT REFERENCES employers(employer_id),
+                    area VARCHAR(50),
+                    salary_from INT,
+                    salary_to INT,
+                    salary_currency VARCHAR(5),
+                    url VARCHAR,
+                    requirement TEXT,
+                    responsibility TEXT
+            )
+        """)
+    print("База данных и таблицы созданы")
+    conn.commit()
+    conn.close()

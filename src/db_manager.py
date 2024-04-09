@@ -1,72 +1,119 @@
 import psycopg2
+from config import config
 
 
 class DBManager:
-    def __init__(self, dbname='headhunter', user='val_k', password='1986', host='localhost', port='5432'):
-        self.conn = psycopg2.connect(
-            dbname=dbname, user=user, password=password, host=host, port=port
-        )
-        self.cur = self.conn.cursor()
-
-    def insert_employer(self, employer):
-        pass
-
-    def insert_vacancy(self, param, employer_id):
-        pass
-
-    def create_tables(self):
-        pass
-
-
-def get_companies_and_vacancies_count(self):
-    query = """
-    SELECT company_name, COUNT(*)
-    FROM vacancies
-    GROUP BY company_name
     """
-    self.cur.execute(query)
-    return self.cur.fetchall()
-
-
-def get_all_vacancies(self):
-    query = """
-    SELECT company_name, vacancy_title, salary, vacancy_link
-    FROM vacancies
+    Класс DBManager, который подключаетя к БДPostgreSQL и имеет следующие
+    методы:
     """
-    self.cur.execute(query)
-    return self.cur.fetchall()
 
+    def __init__(self, database_name, params=config()):
+        self.database_name = database_name
+        self.params = params
 
-def get_avg_salary(self):
-    query = """
-    SELECT AVG(salary)
-    FROM vacancies
-    """
-    self.cur.execute(query)
-    return self.cur.fetchone()[0]
+    def get_companies_and_vacancies_count(self):
+        """
+        Получает список всех компаний и количество вакансий у каждой компании.
+        """
+        conn = psycopg2.connect(dbname=self.database_name, **self.params)
 
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT  e.name, COUNT(vacancies.id) AS vacancy_count 
+                FROM employers e
+                JOIN vacancies USING (employer_id)
+                GROUP BY e.employer_id;
+                """)
 
-def get_vacancies_with_higher_salary(self):
-    avg_salary = self.get_avg_salary()
-    query = f"""
-    SELECT company_name, vacancy_title, salary, vacancy_link
-    FROM vacancies
-    WHERE salary > {avg_salary}
-    """
-    self.cur.execute(query)
-    return self.cur.fetchall()
+            data = cur.fetchall()
+        conn.close()
+        print("Список компаний и количество вакансий в компаниях:")
+        for row in data:
+            print(f"{row[0]} - {row[1]}")
 
+    def get_all_vacancies(self):
+        """
+        Получает список всех вакансий с указанием названия компании,
+        названия вакансии, зарплаты и ссылки на вакансию.
+        """
+        conn = psycopg2.connect(dbname=self.database_name, **self.params)
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT employers.name, v.name, salary_from,salary_to,v.url 
+                FROM vacancies v
+                JOIN employers  USING (employer_id);
+                """)
 
-def get_vacancies_with_keyword(self, keyword):
-    query = f"""
-    SELECT company_name, vacancy_title, salary, vacancy_link
-    FROM vacancies
-    WHERE vacancy_title ILIKE '%{keyword}%'
-    """
-    self.cur.execute(query)
-    return self.cur.fetchall()
+            data = cur.fetchall()
+        conn.close()
+        print("Список всех вакансий с указанием названия компании,"
+              "вакансии, зарплаты и ссылки на вакансию:")
+        for row in data:
+            print(f"{row[0]} - {row[1]} - Зарплата от: {row[2]} руб. - Зарплата до:{row[3]} руб. - Ссылка: {row[4]}")
 
+    def get_avg_salary(self):
+        """
+        Получает среднюю зарплату по компаниям.
+        """
+        conn = psycopg2.connect(dbname=self.database_name, **self.params)
 
-def close_connection(self):
-    self.cur.close()
-    self.conn.close()
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT employers.name, ROUND(AVG((salary_to + salary_from)/2)) as average_salary
+                FROM vacancies v
+                JOIN employers USING (employer_id)
+                GROUP BY employers.employer_id;
+                """)
+
+            data = cur.fetchall()
+        conn.close()
+        print("Cредняя зарплата по вакансиям:")
+        for row in data:
+            print(f"{row[0]} - {row[1]} руб.")
+
+    def get_vacancies_with_higher_salary(self):
+        """
+        Получает список всех вакансий, у которых зарплата
+        выше средней по всем вакансиям.
+        """
+        conn = psycopg2.connect(dbname=self.database_name, **self.params)
+
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                 SELECT employers.name, v.name, v.area, v.url FROM vacancies v
+                 JOIN employers USING (employer_id)
+                 WHERE (salary_to + salary_from)/2 > (SELECT ROUND(AVG((salary_to + salary_from)/2)) FROM vacancies);
+                """)
+
+            data = cur.fetchall()
+        conn.close()
+        print("Cписок всех вакансий, у которых зарплата выше средней по всем вакансиям:")
+        for row in data:
+            print(f"{row[0]} - {row[1]} - Город: {row[2]} - Ссылка: {row[3]}")
+
+    def get_vacancies_with_keyword(self):
+        """
+        Получает список всех вакансий, в названии которых содержатся
+        переданные в метод слова, например python.
+
+        """
+        conn = psycopg2.connect(dbname=self.database_name, **self.params)
+        keyword = input("Введите слово для поиска, например разработчик или python и нажмите Enter\n")
+        with conn.cursor() as cur:
+            cur.execute(f"""
+            SELECT employers.name, v.name, v.area, v.url FROM vacancies v
+            JOIN employers USING (employer_id)
+            WHERE v.name LIKE '%{keyword}%' OR v.requirement LIKE '%{keyword}%'
+            OR v.responsibility LIKE '%{keyword}%';
+            """)
+
+            data = cur.fetchall()
+        conn.close()
+        print("Список компаний и вакансий с заданным словом:")
+        for row in data:
+            print(f"{row[0]} - {row[1]} - Город:  {row[2]} - Ссылка: {row[3]}")
