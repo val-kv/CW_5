@@ -1,4 +1,4 @@
-from src.user_iteraction import user_iteraction
+from src.user_iteraction import user_interaction
 
 if __name__ == "__main__":
-    user_iteraction()
+    user_interaction()
