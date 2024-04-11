@@ -7,7 +7,7 @@
 https://github.com/val-kv/CW_5
 
 
-Создайте файл data.ini в каталоге проекта CW_5/src:
+Создайте файл data.ini в каталоге проекта CW_5:
 [postgres]
 
 host =
