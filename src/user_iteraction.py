@@ -1,7 +1,7 @@
-from config import config
-from tb_creator import create_database
-from hh_api import HeadHunterAPI
-from save_data import save_data_to_db
+from src.config import config
+from src.tb_creator import create_database
+from src.hh_api import HeadHunterAPI
+from src.save_data import save_data_to_db
 from src.db_manager import DBManager
 
 
